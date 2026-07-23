@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Internal OMSGuru operations utility suite" />
+    <title>OMSGuru Utility Suite</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">INTERNAL TOOLS</p>
+        <h1>OMSGuru Utility Suite</h1>
+      </div>
+      <button id="settings-button" class="button button-secondary">Settings</button>
+    </header>
+
+    <main class="app-shell">
+      <nav id="utility-nav" class="utility-nav" aria-label="Utilities"></nav>
+      <section id="app-content" class="app-content" aria-live="polite"></section>
+    </main>
+
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
