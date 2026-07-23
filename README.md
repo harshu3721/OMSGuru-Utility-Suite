@@ -8,8 +8,9 @@ A browser-first foundation for internal OMSGuru support and operations utilities
 - Structured, exportable logger
 - API client with request timeouts, retries, JSON handling, and Oms-Cid/API-key headers
 - Browser helpers: DOM creation, toasts, modal, loading state, CSV export
+- Tampermonkey-ready helpers for waiting on and observing page elements
 - Reusable searchable table component
-- A local API playground with request inspector, JSON formatter, and response viewer
+- A local API playground with request inspector, payload generator, JSON formatter, and response viewer
 
 ## Run locally
 
@@ -23,6 +24,7 @@ Enter your API base URL and credentials in **Settings**. Settings are stored onl
 src/
   api/        HTTP client and request helpers
   core/       settings, logging, JSON utilities
+  browser/    Tampermonkey-compatible DOM automation helpers
   ui/         reusable browser components
   app.js      utility launcher and API playground
 ```

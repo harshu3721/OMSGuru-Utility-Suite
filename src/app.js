@@ -15,6 +15,7 @@ const client = new ApiClient({ settings, logger });
 
 const utilities = [
   { id: "playground", label: "API Playground" },
+  { id: "payload", label: "Payload Generator" },
   { id: "formatter", label: "JSON Formatter" },
   { id: "logs", label: "Request Log" },
 ];
@@ -26,7 +27,7 @@ function field(label, control) {
 function activate(id) {
   [...nav.children].forEach((button) => button.classList.toggle("active", button.dataset.utility === id));
   clear(content);
-  ({ playground: renderPlayground, formatter: renderFormatter, logs: renderLogs }[id])();
+  ({ playground: renderPlayground, payload: renderPayloadGenerator, formatter: renderFormatter, logs: renderLogs }[id])();
 }
 
 function renderNav() {
@@ -84,6 +85,33 @@ function renderFormatter() {
     output.textContent = prettyJson(parsed.value);
   });
   content.append(element("section", { className: "panel" }, [element("h2", { text: "JSON Formatter" }), element("div", { className: "grid" }, [field("JSON input", source), element("div", {}, [element("p", { className: "field", text: "Formatted output" }), output])]), element("div", { className: "button-row" }, [format])]));
+}
+
+function renderPayloadGenerator() {
+  const orderId = element("input", { className: "input", placeholder: "Order ID" });
+  const sku = element("input", { className: "input", placeholder: "SKU" });
+  const quantity = element("input", { className: "input", type: "number", min: 1, value: 1 });
+  const status = element("select", { className: "select" }, ["new", "processing", "cancelled", "shipped"].map((item) => element("option", { value: item, text: item })));
+  const output = element("pre", { className: "status muted", text: "Fill in the fields, then generate a safe JSON template." });
+  const generate = element("button", { className: "button", text: "Generate payload" });
+  const copy = element("button", { className: "button button-secondary", text: "Copy payload", disabled: true });
+  generate.addEventListener("click", () => {
+    const payload = { order_id: orderId.value.trim() || "<order-id>", sku: sku.value.trim() || "<sku>", quantity: Number(quantity.value) || 1, status: status.value };
+    output.className = "status success";
+    output.textContent = prettyJson(payload);
+    copy.disabled = false;
+  });
+  copy.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(output.textContent); toast(toastRegion, "Payload copied.", "success"); }
+    catch { toast(toastRegion, "Copy failed. Select the payload and copy it manually.", "error"); }
+  });
+  content.append(element("section", { className: "panel" }, [
+    element("h2", { text: "Payload Generator" }),
+    element("p", { className: "muted", text: "Create a JSON starter payload before testing an authorised API endpoint." }),
+    element("div", { className: "grid grid-3" }, [field("Order ID", orderId), field("SKU", sku), field("Quantity", quantity), field("Status", status)]),
+    element("div", { className: "button-row" }, [generate, copy]),
+    element("h3", { text: "Generated JSON" }), output,
+  ]));
 }
 
 function renderLogs() {
