@@ -11,6 +11,7 @@ A browser-first foundation for internal OMSGuru support and operations utilities
 - Tampermonkey-ready helpers for waiting on and observing page elements
 - Reusable searchable table component
 - A local API playground with request inspector, payload generator, JSON formatter, and response viewer
+- Ticket Reminder Tool with local follow-up tracking, status handling, filtering, and CSV export
 
 ## Run locally
 

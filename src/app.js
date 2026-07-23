@@ -2,6 +2,7 @@ import { ApiClient } from "./api/client.js";
 import { prettyJson, parseJson } from "./core/json.js";
 import { Logger } from "./core/logger.js";
 import { SettingsStore } from "./core/settings.js";
+import { createTicketStore, reminderState } from "./tools/tickets.js";
 import { clear, element } from "./ui/dom.js";
 import { modal, setLoading, toast } from "./ui/feedback.js";
 import { searchableTable } from "./ui/table.js";
@@ -12,8 +13,10 @@ const toastRegion = document.querySelector("#toast-region");
 const settings = new SettingsStore();
 const logger = new Logger();
 const client = new ApiClient({ settings, logger });
+const ticketStore = createTicketStore();
 
 const utilities = [
+  { id: "tickets", label: "Ticket Reminders" },
   { id: "playground", label: "API Playground" },
   { id: "payload", label: "Payload Generator" },
   { id: "formatter", label: "JSON Formatter" },
@@ -27,11 +30,63 @@ function field(label, control) {
 function activate(id) {
   [...nav.children].forEach((button) => button.classList.toggle("active", button.dataset.utility === id));
   clear(content);
-  ({ playground: renderPlayground, payload: renderPayloadGenerator, formatter: renderFormatter, logs: renderLogs }[id])();
+  ({ tickets: renderTicketReminders, playground: renderPlayground, payload: renderPayloadGenerator, formatter: renderFormatter, logs: renderLogs }[id])();
 }
 
 function renderNav() {
   utilities.forEach((utility) => nav.append(element("button", { className: "nav-button", text: utility.label, attributes: { type: "button" }, on: { click: () => activate(utility.id) } }, [])));
+}
+
+function renderTicketReminders() {
+  const ticketId = element("input", { className: "input", placeholder: "e.g. 345328", required: true });
+  const subject = element("input", { className: "input", placeholder: "Short issue summary", required: true });
+  const assignee = element("input", { className: "input", placeholder: "Owner name" });
+  const priority = element("select", { className: "select" }, ["Low", "Medium", "High", "Critical"].map((item) => element("option", { value: item, text: item })));
+  const remindAt = element("input", { className: "input", type: "datetime-local", required: true });
+  remindAt.value = new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16);
+  const notes = element("textarea", { className: "textarea", placeholder: "Optional follow-up notes", spellcheck: false });
+  const filter = element("select", { className: "select" }, ["all", "overdue", "due-soon", "scheduled", "closed"].map((item) => element("option", { value: item, text: item.replace("-", " ") })));
+  const tableRegion = element("div");
+  const form = element("form", { className: "grid" }, [
+    element("div", { className: "grid grid-3" }, [field("Ticket ID", ticketId), field("Subject", subject), field("Assignee", assignee), field("Priority", priority), field("Remind me at", remindAt)]),
+    field("Notes", notes),
+    element("div", { className: "button-row" }, [element("button", { className: "button", text: "Add reminder", attributes: { type: "submit" } })]),
+  ]);
+  const renderTable = () => {
+    const selected = filter.value;
+    const tickets = ticketStore.all().filter((ticket) => selected === "all" || reminderState(ticket) === selected);
+    clear(tableRegion);
+    if (!tickets.length) { tableRegion.append(element("p", { className: "muted", text: "No reminders match this view." })); return; }
+    const table = element("table", { className: "data-table" });
+    table.append(element("thead", {}, [element("tr", {}, ["Ticket", "Subject", "Owner", "Priority", "Reminder", "Status", "Actions"].map((label) => element("th", { text: label })))]));
+    const rows = tickets.map((ticket) => {
+      const state = reminderState(ticket);
+      const statusSelect = element("select", { className: "select status-select", value: ticket.status });
+      ["open", "waiting", "resolved"].forEach((value) => statusSelect.append(element("option", { value, text: value })));
+      statusSelect.addEventListener("change", () => { ticketStore.updateStatus(ticket.id, statusSelect.value); renderTable(); });
+      const remove = element("button", { className: "button button-danger", text: "Delete" });
+      remove.addEventListener("click", () => { ticketStore.remove(ticket.id); renderTable(); toast(toastRegion, "Reminder deleted.", "success"); });
+      return element("tr", {}, [
+        element("td", { text: ticket.ticketId }), element("td", { text: ticket.subject }), element("td", { text: ticket.assignee || "—" }), element("td", { text: ticket.priority }),
+        element("td", { text: new Date(ticket.remindAt).toLocaleString() }), element("td", { className: `reminder-${state}`, text: state.replace("-", " ") }), element("td", {}, [statusSelect, remove]),
+      ]);
+    });
+    table.append(element("tbody", {}, rows)); tableRegion.append(table);
+  };
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    ticketStore.add({ ticketId: ticketId.value, subject: subject.value, assignee: assignee.value, priority: priority.value, remindAt: remindAt.value, notes: notes.value });
+    form.reset(); remindAt.value = new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16);
+    renderTable(); toast(toastRegion, "Ticket reminder saved locally.", "success");
+  });
+  filter.addEventListener("change", renderTable);
+  const exportButton = element("button", { className: "button button-secondary", text: "Export CSV" });
+  exportButton.addEventListener("click", () => ticketStore.export());
+  content.append(
+    element("section", { className: "panel" }, [element("h2", { text: "Ticket Reminder Tool" }), element("p", { className: "muted", text: "Create follow-ups for support tickets. Entries stay in this browser until you export or delete them." }), form]),
+    element("section", { className: "panel" }, [element("div", { className: "grid grid-3" }, [field("Show", filter), element("div", { className: "button-row" }, [exportButton])]), tableRegion]),
+  );
+  renderTable();
 }
 
 function renderPlayground() {
