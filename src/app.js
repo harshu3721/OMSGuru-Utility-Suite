@@ -16,6 +16,7 @@ const client = new ApiClient({ settings, logger });
 const ticketStore = createTicketStore();
 
 const utilities = [
+  { id: "browser-tools", label: "Browser Tools" },
   { id: "tickets", label: "Ticket Reminders" },
   { id: "playground", label: "API Playground" },
   { id: "payload", label: "Payload Generator" },
@@ -30,11 +31,23 @@ function field(label, control) {
 function activate(id) {
   [...nav.children].forEach((button) => button.classList.toggle("active", button.dataset.utility === id));
   clear(content);
-  ({ tickets: renderTicketReminders, playground: renderPlayground, payload: renderPayloadGenerator, formatter: renderFormatter, logs: renderLogs }[id])();
+  ({ "browser-tools": renderBrowserTools, tickets: renderTicketReminders, playground: renderPlayground, payload: renderPayloadGenerator, formatter: renderFormatter, logs: renderLogs }[id])();
 }
 
 function renderNav() {
   utilities.forEach((utility) => nav.append(element("button", { className: "nav-button", text: utility.label, attributes: { type: "button" }, on: { click: () => activate(utility.id) } }, [])));
+}
+
+function renderBrowserTools() {
+  const openScript = element("a", { className: "button", text: "Open Tampermonkey script", href: "./userscripts/omsguru-ticket-panel-tools.user.js", target: "_blank", rel: "noopener" });
+  content.append(element("section", { className: "panel" }, [
+    element("h2", { text: "OMSGuru Browser Tools" }),
+    element("p", { className: "muted", text: "These tools run inside the logged-in OMSGuru Admin website, so they can use your existing authorised session." }),
+    element("h3", { text: "Ticket Panel Tools" }),
+    element("p", { text: "One Tampermonkey script for bulk reminders, Waiting for Channel Updates, JIRA ID removal, and dispatch-log re-runs." }),
+    element("div", { className: "button-row" }, [openScript]),
+    element("p", { className: "muted", text: "Install Tampermonkey first. The script adds a Ticket Tools button at the lower-right of OMSGuru Admin pages and downloads a CSV audit log after every bulk run." }),
+  ]));
 }
 
 function renderTicketReminders() {
